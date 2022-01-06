@@ -97,13 +97,8 @@ class MainActivity : ComponentActivity() {
                            .requiredHeight(500.dp)
                            .padding(20.dp)
                    )
-
-                   Row {
-                       FilledTonalButton(onClick = {
-
-
+                   FilledTonalButton(onClick = {
                            takeImg.launch()
-
                            imgUriState.let {
                                val data = it
                                imgUriState = data
@@ -112,76 +107,27 @@ class MainActivity : ComponentActivity() {
 
 
                        }) {
-                           Text(text = "Scan face from Camera")
+                           Text(text = "Scan  from Camera")
                        }
-
-
-
-                       FilledTonalButton(onClick = {
+                         FilledTonalButton(onClick = {
                            selectImg.launch(galleryIntent)
 
                        }) {
-                           Text(text = "Scan face from gallery")
+                           Text(text = "Scan  from gallery")
                        }
 
 
                    }
-                   val rec = Thread()
-                   TextButton(onClick =
-                   {
 
-                       startMicrophone(rec)
-                   }) {
-                       Text(text = "Microphone Start")
-                   }
-                   TextButton(onClick =
-                   {
-
-                       stopMicrophone(rec)
-                   }) {
-                       Text(text = "Microphone Stop")
-                   }
-
-                   Text(text = faceId.value.toString())
                }
 
 
            }
                 }
 
-            }
         }
 
     }
-
-
-
-    private fun startMicrophone(  rec: Thread) {
-
-        rec.apply {
-try{
-            this.start()
-            Toast.makeText(applicationContext, "${this.isAlive}",Toast.LENGTH_SHORT).show()
-        }
-catch(e : IllegalThreadStateException){
-    Toast.makeText(applicationContext, e.message.toString(),Toast.LENGTH_SHORT).show()
-
-}}
-    }
-    private fun stopMicrophone(rec: Thread) {
-
-        rec.apply {
-            try{
-            this.interrupt()
-            Toast.makeText(applicationContext, "${this.isAlive}",Toast.LENGTH_SHORT).show()
-        }
-      catch(e : IllegalThreadStateException){
-    Toast.makeText(applicationContext, e.message.toString(),Toast.LENGTH_SHORT).show()
-
-       }}
-    }
-
-
 
 //Chosen image from files
     fun imageFromPath(context: Context, uri: Uri) {
@@ -223,9 +169,7 @@ catch(e : IllegalThreadStateException){
                     for (face in faces) {
 
                         val bounds = face.boundingBox
-                        val rotY = face.headEulerAngleY // Head is rotated to the right rotY degrees
-                        val rotZ = face.headEulerAngleZ // Head is tilted sideways rotZ degrees
-                        Toast.makeText(applicationContext, "Face Shape:$bounds", Toast.LENGTH_SHORT)
+                            Toast.makeText(applicationContext, "Face Shape:$bounds", Toast.LENGTH_SHORT)
                             .show()
                         // If landmark detection was enabled (mouth, ears, eyes, cheeks, and
                         // nose available):
@@ -257,13 +201,13 @@ catch(e : IllegalThreadStateException){
                 }
             }
             .addOnFailureListener { e ->
-                // Task failed with an exception
-                // ...
+                Toast.makeText(applicationContext, e.message, Toast.LENGTH_SHORT)
+                    .show()
 
             }
     }
 companion object{
-val CAMERA_PERMISSION=100
+const val CAMERA_PERMISSION=100
 }
 }
 

@@ -4,6 +4,7 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="app/src/main/res/layout/activity_detector.xml" value="0.24947916666666667" />
+        <entry key="app/src/main/res/layout/camera_live_feed.xml" value="0.2640625" />
       </map>
     </option>
   </component>

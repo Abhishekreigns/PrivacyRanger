@@ -1,4 +1,4 @@
-package com.reignscanary.privacyranger
+package com.reignscanary.privacyranger.Room
 
 import android.content.Context
 import androidx.room.Database

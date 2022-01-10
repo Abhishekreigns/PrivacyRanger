@@ -27,6 +27,7 @@ import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
 import android.graphics.Bitmap
+import android.os.Environment
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 
@@ -38,17 +39,15 @@ class FaceAnalyser(private var context : Context) : ImageAnalysis.Analyzer {
     private  var interpreter : Interpreter
     //Use this to convert incoming bitmap to buffer (will be used on the scaled bitmap,now skip it,you will understand at the end of the code)
     private val imageTensorProcessor = ImageProcessor.Builder()
-        .add( ResizeOp( 240 , 360 , ResizeOp.ResizeMethod.BILINEAR ) )
+        .add( ResizeOp( 144 , 240 , ResizeOp.ResizeMethod.BILINEAR ) )
         .add( StandardizeOp() )
         .build()
 
+    val dd=context.getExternalFilesDir(Environment.DIRECTORY_PICTURES )
 
 private var subject = FloatArray(160)
     var faceList = ArrayList<FloatArray>()
     override fun analyze(imageProxy: ImageProxy) {
-
-
-
 
         //Converting the image from live frame to bitmap
         val bitmap = imageToBitmap(imageProxy?.image!!,imageProxy.imageInfo.rotationDegrees)
@@ -91,7 +90,9 @@ private var subject = FloatArray(160)
              //Cropping the bitmap of the face in the frame to process only the face boundary
             val scaledBitmap= cropRectFromBitmap(bitmap,face.boundingBox)
             //Getting the face Embedding of that bitmap as a float array(have to store and process later)
-            getFaceEmbedding(scaledBitmap)
+           subject= getFaceEmbedding(scaledBitmap)
+
+
 
 
 
@@ -103,6 +104,11 @@ private var subject = FloatArray(160)
         }
     }
 }
+    }
+
+    // Compute the L2 norm of ( x2 - x1 )
+    private fun L2Norm( x1 : FloatArray, x2 : FloatArray ) : Float {
+        return sqrt( x1.mapIndexed{ i , xi -> (xi - x2[ i ]).pow( 2 ) }.sum() )
     }
 
     private fun getFaceEmbedding(image : Bitmap ) : FloatArray {

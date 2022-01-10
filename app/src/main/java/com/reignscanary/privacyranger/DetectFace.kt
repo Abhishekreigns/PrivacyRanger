@@ -29,7 +29,7 @@ var faceId = mutableStateOf(0)
 
 
 
-fun detectFaces(image: InputImage, applicationContext: Context,frameBitmap : Bitmap) {
+fun detectFaces(image: InputImage, applicationContext: Context) {
 
     val options = FaceDetectorOptions.Builder()
         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
@@ -49,15 +49,15 @@ fun detectFaces(image: InputImage, applicationContext: Context,frameBitmap : Bit
             }
           //  else {
                 for (face in faces) {
-
+                          Toast.makeText(applicationContext,"Face Bounds${face.boundingBox}",Toast.LENGTH_SHORT).show()
                     println("Face Bounds${face.boundingBox}")
            //      faceShapeBounds.value = face.boundingBox
            //
            //
-           //      faceShapeBoundsLeft.value= face.boundingBox.left
-           //      faceShapeBoundsTop.value= face.boundingBox.top
-           //      faceShapeBoundsRight.value=  face.boundingBox.right
-           //      faceShapeBoundsBottom.value=face.boundingBox.bottom
+               //FfaceShapeBoundsLeft.value= face.boundingBox.left
+             //  faceShapeBoundsTop.value= face.boundingBox.top
+               //faceShapeBoundsRight.value=  face.boundingBox.right
+           //    faceShapeBoundsBottom.value=face.boundingBox.bottom
 
                 }
             }

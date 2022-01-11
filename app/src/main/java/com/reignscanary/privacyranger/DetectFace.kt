@@ -33,7 +33,7 @@ var faceId = mutableStateOf(0)
 
 
 
-fun detectFaces(image: InputImage, applicationContext: Context) {
+fun detectFaces(image: InputImage, applicationContext: Context,name: String)  : ArrayList<Pair<String, FloatArray>> {
 
     val options = FaceDetectorOptions.Builder()
         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
@@ -42,7 +42,8 @@ fun detectFaces(image: InputImage, applicationContext: Context) {
         .setMinFaceSize(0.15f)
         .enableTracking()
         .build()
-     var subject = FloatArray(192)
+
+     val imageData = ArrayList<Pair<String,FloatArray>>()
 
 val faceAnalyser = FaceAnalyser(applicationContext)
     val detector = FaceDetection.getClient(options)
@@ -57,10 +58,15 @@ val faceAnalyser = FaceAnalyser(applicationContext)
                 for (face in faces) {
                     val bitmap = Bitmap.createBitmap(image.width,image.height,Bitmap.Config.ARGB_8888)
                     try{
-                    val scaledBitmap= cropRectFromBitmap(bitmap,face.boundingBox)
-                   subject= faceAnalyser.getFaceEmbedding(scaledBitmap)
-                          Toast.makeText(applicationContext,"Face Bounds${face.boundingBox}",Toast.LENGTH_SHORT).show()
-                    println("Face Bounds${face.boundingBox}")
+                        val scaledBitmap= cropRectFromBitmap(bitmap,face.boundingBox)
+                        val embedding = faceAnalyser.getFaceEmbedding( scaledBitmap)
+                        imageData.add(Pair(name,embedding))
+                        println("ADDED FACE")
+
+        //
+        //        subject= faceAnalyser.getFaceEmbedding(scaledBitmap)
+        //               Toast.makeText(applicationContext,"Face Bounds${face.boundingBox}",Toast.LENGTH_SHORT).show()
+        //         println("Face Bounds${face.boundingBox}")
            //      faceShapeBounds.value = face.boundingBox
            //
            //
@@ -73,6 +79,11 @@ val faceAnalyser = FaceAnalyser(applicationContext)
                     catch (e: Exception){
                         println("ERROR DETECTING $e.localizedMessage")
                     }
+
+                    if(!imageData.isNullOrEmpty()){
+                        println("SENT FACE DATA")
+
+                    }
             }}
       //  }
         .addOnFailureListener { e ->
@@ -80,6 +91,7 @@ val faceAnalyser = FaceAnalyser(applicationContext)
                 .show()
 
         }
+    return imageData
 }
 // Crop the given bitmap with the given rect.
 fun cropRectFromBitmap(source: Bitmap, rect: Rect ): Bitmap {

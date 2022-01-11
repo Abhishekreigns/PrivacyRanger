@@ -50,11 +50,12 @@ import java.lang.Exception
 import java.util.concurrent.Executors
 
 var paintResource  = R.drawable.face
+ var predictedName = mutableStateOf("Predicted Name will appera here")
 class MainActivity : ComponentActivity() {
 
     lateinit var takeImg : ManagedActivityResultLauncher<Void?, Bitmap?>
     private  var userName : MutableState<String> = mutableStateOf("")
-    
+    private lateinit var faceAnalyser: FaceAnalyser
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (ContextCompat.checkSelfPermission(applicationContext,
@@ -86,7 +87,7 @@ class MainActivity : ComponentActivity() {
                 CAMERA_PERMISSION
             )
         }
-
+        faceAnalyser = FaceAnalyser(context = applicationContext)
         setContent {
              takeImg = rememberLauncherForActivityResult(contract =  ActivityResultContracts.TakePicturePreview()){
                  image->
@@ -168,7 +169,7 @@ item{
                     Text(text = "Enter name to recognize")
                 }
             )
-
+            Text(text = predictedName.value)
 
         }
 
@@ -178,14 +179,16 @@ item{
         val userImageFileList = applicationContext.getExternalFilesDir(DIRECTORY_PICTURES)?.listFiles()
 
         if (userImageFileList != null && userImageFileList.isNotEmpty()) {
+
             Toast.makeText(applicationContext,"DETECTION >>> ${userImageFileList.size} images found",Toast.LENGTH_SHORT).show()
 
             for(userImageFile in userImageFileList) {
+                println("DETECTED FILE: ${userImageFile.name}")
                val imgFileUri =  Uri.fromFile(userImageFile)
              val image = InputImage.fromFilePath(applicationContext, imgFileUri)
 
 
-                detectFaces(image,applicationContext)
+               faceAnalyser.faceList= detectFaces(image,applicationContext,userImageFile.name.dropLast(18))
 
 
             }
@@ -242,7 +245,7 @@ item{
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build()
                             .also {
-                                it.setAnalyzer(cameraExecutor, FaceAnalyser(context))
+                                it.setAnalyzer(cameraExecutor, faceAnalyser)
 
                             }
                         try {

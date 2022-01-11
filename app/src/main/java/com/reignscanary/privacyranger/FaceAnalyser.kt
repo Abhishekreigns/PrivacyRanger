@@ -2,7 +2,6 @@ package com.reignscanary.privacyranger
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.*
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
@@ -17,7 +16,6 @@ import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.common.TensorOperator
-import org.tensorflow.lite.support.image.*
 import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import org.tensorflow.lite.support.tensorbuffer.TensorBufferFloat
@@ -27,7 +25,7 @@ import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
 import android.graphics.Bitmap
-import android.os.Environment
+import android.widget.Toast
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 
@@ -42,11 +40,10 @@ class FaceAnalyser(private var context : Context) : ImageAnalysis.Analyzer {
         .add( ResizeOp( 112 , 112 , ResizeOp.ResizeMethod.BILINEAR ) )
         .add( StandardizeOp() )
         .build()
+    private val nameScoreHashmap = HashMap<String,ArrayList<Float>>()
 
-    val dd=context.getExternalFilesDir(Environment.DIRECTORY_PICTURES )
-
-private var subject = FloatArray(192)
-    var faceList = ArrayList<FloatArray>()
+private var currentFace = FloatArray(192)
+    var faceList = ArrayList<Pair<String,FloatArray>>()
     override fun analyze(imageProxy: ImageProxy) {
 
         //Converting the image from live frame to bitmap
@@ -82,17 +79,54 @@ private var subject = FloatArray(192)
     }
 
     private suspend fun runModel(faces: List<Face>, bitmap: Bitmap) {
-
+        val predictions = ArrayList<Prediction>()
       withContext(Dispatchers.Default){
     for(face in faces){
 
         try{
              //Cropping the bitmap of the face in the frame to process only the face boundary
             val scaledBitmap= cropRectFromBitmap(bitmap,face.boundingBox)
+            currentFace= getFaceEmbedding(scaledBitmap)
             //Getting the face Embedding of that bitmap as a float array(have to store and process later)
-           subject= getFaceEmbedding(scaledBitmap)
+            for ( i in 0 until faceList.size ) {
+                // If this cluster ( i.e an ArrayList with a specific key ) does not exist,
+                // initialize a new one.
 
+                if ( nameScoreHashmap[ faceList[ i ].first ] == null ) {
+                    // Compute the L2 norm and then append it to the ArrayList.
+                    val p = ArrayList<Float>()
 
+                    p.add( L2Norm( currentFace , faceList[ i ].second ) )
+
+                    nameScoreHashmap[ faceList[ i ].first ] = p
+                }
+                // If this cluster exists, append the L2 norm/cosine score to it.
+                else {
+
+                    nameScoreHashmap[ faceList[ i ].first ]?.add( L2Norm( currentFace , faceList[ i ].second ) )
+
+                }
+            }
+
+            val avgScores = nameScoreHashmap.values.map{ scores -> scores.toFloatArray().average() }
+            val names = nameScoreHashmap.keys.toTypedArray()
+            val bestScoreUserName: String =  // In case of L2 norm, choose the lowest value.
+                if ( avgScores.minOrNull()!! > 2f ) {
+                    println("DETECTED FACE: UNKNOWN")
+                    "Unknown"
+                }
+                else {
+
+                    names[ avgScores.indexOf( avgScores.minOrNull()!! ) ]
+                }
+            predictions.add(
+                Prediction(
+                    face.boundingBox,
+                    bestScoreUserName
+                )
+            )
+             predictedName.value = bestScoreUserName
+             println("DETECTED FACE: $bestScoreUserName")
 
         }
         catch (e:Exception){
@@ -125,7 +159,7 @@ private var subject = FloatArray(192)
         //After the conversion to buffer it is fed to the model interpreter to generate outputs from the input buffer we receive
         val faceNetModelOutputs = Array( 1 ){ FloatArray( 192) }
         interpreter.run( inputs, faceNetModelOutputs )
-        println("MYMESSAGE:FaceNet Running $faceNetModelOutputs")
+        println("MYMESSAGE: FACE" + faceNetModelOutputs[0])
         return faceNetModelOutputs
     }
 
@@ -133,7 +167,6 @@ private var subject = FloatArray(192)
     init {
         // Initialize TFLiteInterpreter
         val interpreterOptions = Interpreter.Options().apply {
-
             setNumThreads(4)
             setUseXNNPACK( true )
         }

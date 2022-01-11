@@ -53,6 +53,8 @@ var paintResource  = R.drawable.face
 class MainActivity : ComponentActivity() {
 
     lateinit var takeImg : ManagedActivityResultLauncher<Void?, Bitmap?>
+    private  var userName : MutableState<String> = mutableStateOf("")
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (ContextCompat.checkSelfPermission(applicationContext,
@@ -89,9 +91,14 @@ class MainActivity : ComponentActivity() {
              takeImg = rememberLauncherForActivityResult(contract =  ActivityResultContracts.TakePicturePreview()){
                  image->
                 if (image != null) {
-                       saveImage(image)
-                    //val path = MediaStore.Images.Media.insertImage(applicationContext.contentResolver,image,"image",null)
-
+                   
+                    if(userName.value.isEmpty()){
+                        Toast.makeText(applicationContext,"Enter a name",Toast.LENGTH_SHORT).show()
+                    }
+                    else {
+                        saveImage(image)
+                        //val path = MediaStore.Images.Media.insertImage(applicationContext.contentResolver,image,"image",null)
+                    }
 
                 }
             }
@@ -118,7 +125,7 @@ item{
 
         }
 
-        val file = File(directory ,"user_face_image_${System.currentTimeMillis()}.jpg")
+        val file = File(directory ,"${userName.value}_${System.currentTimeMillis()}.jpg")
 
 
        try{
@@ -143,7 +150,7 @@ item{
      fun Register() {
 
 
-        Column( ) {
+        Column(verticalArrangement = Arrangement.Center,horizontalAlignment = Alignment.CenterHorizontally ) {
 
             TextButton(onClick = {  takeImg.launch() }) {
                 Text("Register  this face ")
@@ -153,6 +160,14 @@ item{
                 Text("Detect Details ")
 
             }
+            TextField(value =userName.value ,
+                onValueChange = {
+                userName.value=it
+                },
+                label= {
+                    Text(text = "Enter name to recognize")
+                }
+            )
 
 
         }
@@ -232,12 +247,15 @@ item{
                             }
                         try {
                             cameraProvider.unbindAll()
-                            //bindig camera to preview view
+                            //binding camera to preview view
                             cameraProvider.bindToLifecycle(
                                 lifecycleOwner,
                                 cameraLens,
-                                preview,
-                                faceAnalysis
+
+
+                                preview
+                               
+                                ,faceAnalysis
                             )
                         } catch (e: Exception) {
                             println(e.localizedMessage)

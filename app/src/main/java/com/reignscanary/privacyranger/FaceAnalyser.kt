@@ -39,13 +39,13 @@ class FaceAnalyser(private var context : Context) : ImageAnalysis.Analyzer {
     private  var interpreter : Interpreter
     //Use this to convert incoming bitmap to buffer (will be used on the scaled bitmap,now skip it,you will understand at the end of the code)
     private val imageTensorProcessor = ImageProcessor.Builder()
-        .add( ResizeOp( 144 , 240 , ResizeOp.ResizeMethod.BILINEAR ) )
+        .add( ResizeOp( 112 , 112 , ResizeOp.ResizeMethod.BILINEAR ) )
         .add( StandardizeOp() )
         .build()
 
     val dd=context.getExternalFilesDir(Environment.DIRECTORY_PICTURES )
 
-private var subject = FloatArray(160)
+private var subject = FloatArray(192)
     var faceList = ArrayList<FloatArray>()
     override fun analyze(imageProxy: ImageProxy) {
 
@@ -94,10 +94,6 @@ private var subject = FloatArray(160)
 
 
 
-
-
-
-
         }
         catch (e:Exception){
             println("ERROR $e.localizedMessage")
@@ -111,7 +107,7 @@ private var subject = FloatArray(160)
         return sqrt( x1.mapIndexed{ i , xi -> (xi - x2[ i ]).pow( 2 ) }.sum() )
     }
 
-    private fun getFaceEmbedding(image : Bitmap ) : FloatArray {
+     fun getFaceEmbedding(image : Bitmap ) : FloatArray {
         println("MYMESSAGE: RUNNING")
         //Running the facenet model on the scaled bitmap (after converting it to buffer) as model accepts ByteBuffer
         return runFaceNet( convertBitmapToBuffer( image ))[0]
@@ -127,9 +123,9 @@ private var subject = FloatArray(160)
 
     private fun runFaceNet(inputs: Any): Array<FloatArray> {
         //After the conversion to buffer it is fed to the model interpreter to generate outputs from the input buffer we receive
-        val faceNetModelOutputs = Array( 1 ){ FloatArray( 128) }
+        val faceNetModelOutputs = Array( 1 ){ FloatArray( 192) }
         interpreter.run( inputs, faceNetModelOutputs )
-
+        println("MYMESSAGE:FaceNet Running $faceNetModelOutputs")
         return faceNetModelOutputs
     }
 
@@ -138,9 +134,10 @@ private var subject = FloatArray(160)
         // Initialize TFLiteInterpreter
         val interpreterOptions = Interpreter.Options().apply {
 
+            setNumThreads(4)
             setUseXNNPACK( true )
         }
-        interpreter = Interpreter(FileUtil.loadMappedFile(context, "facenet.tflite") , interpreterOptions )
+        interpreter = Interpreter(FileUtil.loadMappedFile(context, "mobile_face_net.tflite") , interpreterOptions )
 
     }
 

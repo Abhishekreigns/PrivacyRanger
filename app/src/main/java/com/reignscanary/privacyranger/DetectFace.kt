@@ -14,7 +14,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.tensorflow.lite.support.image.ImageProcessor
+import org.tensorflow.lite.support.image.TensorImage
+import org.tensorflow.lite.support.image.ops.ResizeOp
 import java.io.ByteArrayOutputStream
+import java.lang.Exception
 
 var faceId = mutableStateOf(0)
  var faceShapeBounds = mutableStateOf(Rect())
@@ -38,7 +42,9 @@ fun detectFaces(image: InputImage, applicationContext: Context) {
         .setMinFaceSize(0.15f)
         .enableTracking()
         .build()
+     var subject = FloatArray(192)
 
+val faceAnalyser = FaceAnalyser(applicationContext)
     val detector = FaceDetection.getClient(options)
    println("In Detect Faces")
 
@@ -49,6 +55,10 @@ fun detectFaces(image: InputImage, applicationContext: Context) {
             }
           //  else {
                 for (face in faces) {
+                    val bitmap = Bitmap.createBitmap(image.width,image.height,Bitmap.Config.ARGB_8888)
+                    try{
+                    val scaledBitmap= cropRectFromBitmap(bitmap,face.boundingBox)
+                   subject= faceAnalyser.getFaceEmbedding(scaledBitmap)
                           Toast.makeText(applicationContext,"Face Bounds${face.boundingBox}",Toast.LENGTH_SHORT).show()
                     println("Face Bounds${face.boundingBox}")
            //      faceShapeBounds.value = face.boundingBox
@@ -60,7 +70,10 @@ fun detectFaces(image: InputImage, applicationContext: Context) {
            //    faceShapeBoundsBottom.value=face.boundingBox.bottom
 
                 }
-            }
+                    catch (e: Exception){
+                        println("ERROR DETECTING $e.localizedMessage")
+                    }
+            }}
       //  }
         .addOnFailureListener { e ->
             Toast.makeText(applicationContext, e.message, Toast.LENGTH_SHORT)

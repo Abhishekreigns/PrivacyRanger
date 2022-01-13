@@ -20,32 +20,20 @@ import org.tensorflow.lite.support.image.ops.ResizeOp
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 
-var faceId = mutableStateOf(0)
- var faceShapeBounds = mutableStateOf(Rect())
-
- var faceShapeBoundsLeft = mutableStateOf(0)
-
- var faceShapeBoundsTop = mutableStateOf(0)
-
- var faceShapeBoundsRight = mutableStateOf(0)
-
- var faceShapeBoundsBottom = mutableStateOf(0)
 
 
 
-fun detectFaces(image: InputImage, applicationContext: Context,name: String)  : ArrayList<Pair<String, FloatArray>> {
+val faceLists = ArrayList<Pair<String,FloatArray>>()
+fun detectFaces(image: InputImage, applicationContext: Context,name: String,faceNetModel: FaceNetModel)  : ArrayList<Pair<String, FloatArray>> {
 
     val options = FaceDetectorOptions.Builder()
-        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
-        .setMinFaceSize(0.15f)
+        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
         .enableTracking()
         .build()
 
-     val imageData = ArrayList<Pair<String,FloatArray>>()
 
-val faceAnalyser = FaceAnalyser(applicationContext)
+
+val faceAnalyser = FaceAnalyser(faceNetModel)
     val detector = FaceDetection.getClient(options)
    println("In Detect Faces")
 
@@ -54,14 +42,21 @@ val faceAnalyser = FaceAnalyser(applicationContext)
             CoroutineScope( Dispatchers.Default ).launch {
 
             }
-          //  else {
+
                 for (face in faces) {
+
+
                     val bitmap = Bitmap.createBitmap(image.width,image.height,Bitmap.Config.ARGB_8888)
                     try{
                         val scaledBitmap= cropRectFromBitmap(bitmap,face.boundingBox)
-                        val embedding = faceAnalyser.getFaceEmbedding( scaledBitmap)
-                        imageData.add(Pair(name,embedding))
+                        val embedding = faceNetModel.getFaceEmbedding( scaledBitmap)
+
                         println("ADDED FACE")
+
+                            faceLists.add(Pair(name,embedding))
+
+
+
 
         //
         //        subject= faceAnalyser.getFaceEmbedding(scaledBitmap)
@@ -80,7 +75,7 @@ val faceAnalyser = FaceAnalyser(applicationContext)
                         println("ERROR DETECTING $e.localizedMessage")
                     }
 
-                    if(!imageData.isNullOrEmpty()){
+                    if(!faceLists.isNullOrEmpty()){
                         println("SENT FACE DATA")
 
                     }
@@ -91,7 +86,7 @@ val faceAnalyser = FaceAnalyser(applicationContext)
                 .show()
 
         }
-    return imageData
+    return faceLists
 }
 // Crop the given bitmap with the given rect.
 fun cropRectFromBitmap(source: Bitmap, rect: Rect ): Bitmap {

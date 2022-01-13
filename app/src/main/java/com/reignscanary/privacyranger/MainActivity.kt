@@ -1,6 +1,7 @@
 package com.reignscanary.privacyranger
 
 import android.Manifest
+import android.content.ContentResolver
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -11,6 +12,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.os.Environment.DIRECTORY_PICTURES
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 import android.util.Size
 import android.widget.Toast
@@ -26,6 +28,8 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,23 +49,28 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileDescriptor
 import java.io.FileOutputStream
 import java.lang.Exception
 import java.util.concurrent.Executors
 
 var paintResource  = R.drawable.face
- var predictedName = mutableStateOf("Predicted Name will appera here")
+ var predictedName = mutableStateOf("Predicted Name will appear here")
+var selectedCamera = mutableStateOf("Front Camera")
 class MainActivity : ComponentActivity() {
 
     lateinit var takeImg : ManagedActivityResultLauncher<Void?, Bitmap?>
     private  var userName : MutableState<String> = mutableStateOf("")
     private lateinit var faceAnalyser: FaceAnalyser
+    lateinit var faceNetModel : FaceNetModel
+    private val modelInfo = Models.FACENET
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        faceNetModel = FaceNetModel(this, modelInfo,true,true)
         if (ContextCompat.checkSelfPermission(applicationContext,
                 Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(
+                    ActivityCompat.requestPermissions(
                 this@MainActivity,
                 arrayOf(Manifest.permission.CAMERA),
                 CAMERA_PERMISSION
@@ -87,7 +96,7 @@ class MainActivity : ComponentActivity() {
                 CAMERA_PERMISSION
             )
         }
-        faceAnalyser = FaceAnalyser(context = applicationContext)
+        faceAnalyser = FaceAnalyser(faceNetModel)
         setContent {
              takeImg = rememberLauncherForActivityResult(contract =  ActivityResultContracts.TakePicturePreview()){
                  image->
@@ -105,7 +114,7 @@ class MainActivity : ComponentActivity() {
             }
             LazyColumn(verticalArrangement = Arrangement.Center,horizontalAlignment = Alignment.CenterHorizontally){
 item{
-          CameraFeed()
+          CameraFeed(selectedCamera.value)
          Register()
 
 
@@ -175,7 +184,18 @@ item{
 
 
     }
-  private fun detectFacesInFile() {
+
+    // Get the image as a Bitmap from given Uri
+    // Source -> https://developer.android.com/training/data-storage/shared/documents-files#bitmap
+    fun getBitmapFromUri(contentResolver : ContentResolver, uri: Uri): Bitmap {
+        val parcelFileDescriptor: ParcelFileDescriptor? = contentResolver.openFileDescriptor(uri, "r")
+        val fileDescriptor: FileDescriptor = parcelFileDescriptor!!.fileDescriptor
+        val image: Bitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor)
+        parcelFileDescriptor.close()
+        return image
+    }
+
+    private fun detectFacesInFile() {
         val userImageFileList = applicationContext.getExternalFilesDir(DIRECTORY_PICTURES)?.listFiles()
 
         if (userImageFileList != null && userImageFileList.isNotEmpty()) {
@@ -184,11 +204,19 @@ item{
 
             for(userImageFile in userImageFileList) {
                 println("DETECTED FILE: ${userImageFile.name}")
-               val imgFileUri =  Uri.fromFile(userImageFile)
-             val image = InputImage.fromFilePath(applicationContext, imgFileUri)
+                val imgFileUri =  Uri.fromFile(userImageFile)
+      val imageBitmap = getBitmapFromUri(contentResolver,imgFileUri)
+
+             val image = InputImage.fromByteArray(
+                 bitmapToNV21ByteArray( imageBitmap ) ,
+                 imageBitmap.width,
+                 imageBitmap.height,
+                 0,
+                 InputImage.IMAGE_FORMAT_NV21
+             )
 
 
-               faceAnalyser.faceList= detectFaces(image,applicationContext,userImageFile.name.dropLast(18))
+              detectFaces(image,applicationContext,userImageFile.name.dropLast(18),faceNetModel)
 
 
             }
@@ -200,9 +228,47 @@ item{
 
     }
 
+    // Convert the given Bitmap to NV21 ByteArray
+    // See this comment -> https://github.com/firebase/quickstart-android/issues/932#issuecomment-531204396
+    fun bitmapToNV21ByteArray(bitmap: Bitmap): ByteArray {
+        val argb = IntArray(bitmap.width * bitmap.height )
+        bitmap.getPixels(argb, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        val yuv = ByteArray(bitmap.height * bitmap.width + 2 * Math.ceil(bitmap.height / 2.0).toInt()
+                * Math.ceil(bitmap.width / 2.0).toInt())
+        encodeYUV420SP( yuv, argb, bitmap.width, bitmap.height)
+        return yuv
+    }
 
+    private fun encodeYUV420SP(byteArray: ByteArray, argb: IntArray, width: Int, height: Int) {
+        val frameSize = width * height
+        var yIndex = 0
+        var uvIndex = frameSize
+        var R: Int
+        var G: Int
+        var B: Int
+        var Y: Int
+        var U: Int
+        var V: Int
+        var index = 0
+        for (j in 0 until height) {
+            for (i in 0 until width) {
+                R = argb[index] and 0xff0000 shr 16
+                G = argb[index] and 0xff00 shr 8
+                B = argb[index] and 0xff shr 0
+                Y = (66 * R + 129 * G + 25 * B + 128 shr 8) + 16
+                U = (-38 * R - 74 * G + 112 * B + 128 shr 8) + 128
+                V = (112 * R - 94 * G - 18 * B + 128 shr 8) + 128
+                byteArray[yIndex++] = (if (Y < 0) 0 else if (Y > 255) 255 else Y).toByte()
+                if (j % 2 == 0 && index % 2 == 0) {
+                    byteArray[uvIndex++] = (if (V < 0) 0 else if (V > 255) 255 else V).toByte()
+                    byteArray[uvIndex++] = (if (U < 0) 0 else if (U > 255) 255 else U).toByte()
+                }
+                index++
+            }
+        }
+    }
     @Composable
-    fun CameraFeed() {
+    fun CameraFeed(selectedCamera : String) {
         val lifecycleOwner = LocalLifecycleOwner.current
         val context = LocalContext.current
         val cameraProviderFuture = remember {
@@ -238,7 +304,13 @@ item{
                                 it.setSurfaceProvider(previewView.surfaceProvider)
                             }
                         //Telling to use the front camera,try changing according to your needs
-                        val cameraLens = CameraSelector.DEFAULT_FRONT_CAMERA
+                        val cameraLens =
+                            if(selectedCamera == "Front Camera") {
+                                CameraSelector.DEFAULT_FRONT_CAMERA
+                            }
+                        else {
+                                CameraSelector.DEFAULT_BACK_CAMERA
+                            }
                         val faceAnalysis = ImageAnalysis.Builder()
                             //for latest image from the live preview
                             .setTargetResolution(Size( 480, 640 ) )
@@ -271,11 +343,67 @@ item{
 
             }
 
+
+            CameraChooser()
+
+
+
+        }
+    }
+
+     @Composable
+    fun CameraChooser() {
+        val options = listOf(
+            "Front Camera",
+            "Back Camera"
+        )
+
+        val onSelectionChange = { text: String ->
+            selectedCamera.value = text
+        }
+
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            options.forEach { text ->
+                Row(
+                    modifier = Modifier
+                        .padding(
+                            all = 8.dp,
+                        ),
+                ) {
+                    Text(
+                        text = text,
+                        modifier = Modifier
+                            .clip(
+                                shape = RoundedCornerShape(
+                                    size = 12.dp,
+                                ),
+                            )
+                            .clickable {
+                                onSelectionChange(text)
+                            }
+                            .background(
+                                if (text == selectedCamera.value) {
+                                    androidx.compose.ui.graphics.Color.Magenta
+                                } else {
+                                    androidx.compose.ui.graphics.Color.LightGray
+                                }
+                            )
+                            .padding(
+                                vertical = 12.dp,
+                                horizontal = 16.dp,
+                            ),
+                    )
+                }
+            }
         }
     }
 
 
-companion object{
+    companion object{
 const val CAMERA_PERMISSION=100
 }
 }

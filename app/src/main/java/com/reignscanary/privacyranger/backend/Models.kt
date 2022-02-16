@@ -1,4 +1,6 @@
-package com.reignscanary.privacyranger
+package com.reignscanary.privacyranger.backend
+
+import com.reignscanary.privacyranger.backend.ModelInfo
 
 
 class Models {

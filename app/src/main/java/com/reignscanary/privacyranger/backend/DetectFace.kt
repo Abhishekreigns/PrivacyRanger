@@ -3,20 +3,15 @@ package com.reignscanary.privacyranger
 import android.content.Context
 import android.graphics.*
 import android.media.Image
-import android.util.Log
 import android.widget.Toast
-import androidx.compose.runtime.mutableStateOf
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.reignscanary.privacyranger.backend.FaceAnalyser
+import com.reignscanary.privacyranger.backend.FaceNetModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.tensorflow.lite.support.image.ImageProcessor
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.image.ops.ResizeOp
 import java.io.ByteArrayOutputStream
 import java.lang.Exception
 

@@ -1,4 +1,4 @@
-package com.reignscanary.privacyranger
+package com.reignscanary.privacyranger.backend
 
 import android.graphics.Rect
 

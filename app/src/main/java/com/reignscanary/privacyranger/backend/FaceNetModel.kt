@@ -1,4 +1,4 @@
-package com.reignscanary.privacyranger
+package com.reignscanary.privacyranger.backend
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -17,9 +17,9 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 class FaceNetModel(context : Context,
-                    var modelInfo : ModelInfo,
-                    useGpu : Boolean,
-                    useXNNPack : Boolean) {
+                   var modelInfo : ModelInfo,
+                   useGpu : Boolean,
+                   useXNNPack : Boolean) {
 
 
     // Input image size for FaceNet model.

@@ -1,38 +1,25 @@
-package com.reignscanary.privacyranger
+package com.reignscanary.privacyranger.backend
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.graphics.Bitmap
-import android.os.Environment
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.reignscanary.privacyranger.*
+import com.reignscanary.privacyranger.activities.predictedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.tensorflow.lite.DataType
-import org.tensorflow.lite.Interpreter
-import org.tensorflow.lite.support.common.FileUtil
-import org.tensorflow.lite.support.common.TensorOperator
-import org.tensorflow.lite.support.image.ImageProcessor
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.support.image.ops.ResizeOp
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
-import org.tensorflow.lite.support.tensorbuffer.TensorBufferFloat
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.ByteBuffer
-import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 
 @SuppressLint("UnsafeOptInUsageError")
-class FaceAnalyser( private var model :FaceNetModel) : ImageAnalysis.Analyzer {
+class FaceAnalyser( private var model : FaceNetModel) : ImageAnalysis.Analyzer {
 
     private val nameScoreHashmap = HashMap<String,ArrayList<Float>>()
 

@@ -1,4 +1,4 @@
-package com.reignscanary.privacyranger
+package com.reignscanary.privacyranger.backend
 
 class ModelInfo(
     val name : String ,
